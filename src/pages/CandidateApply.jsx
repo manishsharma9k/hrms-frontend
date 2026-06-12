@@ -27,10 +27,29 @@ const fieldStyle = {
     transition: 'border-color 160ms ease, box-shadow 160ms ease',
 };
 
+const rolesList = [
+    'Frontend Developer',
+    'Backend Developer',
+    'Full Stack Developer',
+    'QA Engineer',
+    'DevOps Engineer',
+    'Mobile App Developer',
+    'UI/UX Designer',
+    'Graphic Designer',
+    'Product Manager',
+    'HR Manager',
+    'Recruiter',
+    'Operations Specialist',
+    'Sales Executive',
+    'Marketing Manager',
+    'Business Development',
+];
+
 const CandidateApply = () => {
     const [form, setForm] = useState(initialForm);
     const [loading, setLoading] = useState(false);
     const [status, setStatus] = useState('');
+    const [isCustomRole, setIsCustomRole] = useState(false);
 
     const setValue = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
@@ -47,6 +66,7 @@ const CandidateApply = () => {
         try {
             await publicRecruitmentAPI.apply(data);
             setForm(initialForm);
+            setIsCustomRole(false);
             setStatus('success');
         } catch (err) {
             setStatus(err.response?.data?.error || 'Unable to submit application. Please try again.');
@@ -141,9 +161,9 @@ const CandidateApply = () => {
                             <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#991B1B', borderRadius: '0.85rem', padding: '0.9rem 1rem', marginBottom: '1.2rem', fontWeight: 800 }}>{status}</div>
                         )}
 
-                        <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '1rem', padding: '1rem', marginBottom: '1.1rem' }}>
-                            <p style={{ margin: '0 0 0.35rem', color: '#0F172A', fontSize: '1rem', fontWeight: 900 }}>Candidate Intake Form</p>
-                            <p style={{ margin: 0, color: '#64748B', fontSize: '0.86rem', lineHeight: 1.55 }}>Please complete the form carefully. Fields marked with * are required, and the rest help HR shortlist faster.</p>
+                        <div style={{ background: 'linear-gradient(135deg,#4F46E5,#4338CA)', border: '1px solid #4338CA', borderRadius: '1rem', padding: '1.25rem', marginBottom: '1.1rem', boxShadow: '0 8px 20px rgba(79,70,229,0.15)' }}>
+                            <p style={{ margin: '0 0 0.35rem', color: '#FFFFFF', fontSize: '1.1rem', fontWeight: 900 }}>Candidate Intake Form</p>
+                            <p style={{ margin: 0, color: 'rgba(255,255,255,0.85)', fontSize: '0.86rem', lineHeight: 1.55 }}>Please complete the form carefully. Fields marked with * are required, and the rest help HR shortlist faster.</p>
                         </div>
 
                         <SectionTitle title="Candidate Details" description="Basic information HR needs to identify and contact you." />
@@ -155,17 +175,50 @@ const CandidateApply = () => {
                         </div>
 
                         <SectionTitle title="Role Information" description="Tell us what position fits your profile." />
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.6rem', marginBottom: '1rem' }}>
-                            {['Software Development', 'HR & Operations', 'Sales & Marketing', 'Design & Product'].map(item => (
-                                <button type="button" key={item} onClick={() => setValue('role', item)} style={{ border: '1px solid #E0E7FF', background: form.role === item ? '#EEF2FF' : '#fff', color: '#4338CA', borderRadius: '0.75rem', padding: '0.7rem', fontSize: '0.8rem', fontWeight: 900, cursor: 'pointer' }}>
-                                    {item}
-                                </button>
-                            ))}
-                        </div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1.35rem' }}>
-                            <Field icon={<Briefcase size={17} />} label="Role Applied For *"><input style={fieldStyle} value={form.role} onChange={e => setValue('role', e.target.value)} onFocus={focusInput} onBlur={blurInput} required maxLength={80} placeholder="Frontend Developer" /></Field>
+                            <Field icon={<Briefcase size={17} />} label="Role Applied For *">
+                                <select 
+                                    style={fieldStyle} 
+                                    value={isCustomRole ? 'Other' : (rolesList.includes(form.role) ? form.role : '')}
+                                    onChange={e => {
+                                        const val = e.target.value;
+                                        if (val === 'Other') {
+                                            setIsCustomRole(true);
+                                            setValue('role', '');
+                                        } else {
+                                            setIsCustomRole(false);
+                                            setValue('role', val);
+                                        }
+                                    }}
+                                    onFocus={focusInput}
+                                    onBlur={blurInput}
+                                    required
+                                >
+                                    <option value="" disabled>Select a role</option>
+                                    {rolesList.map(r => (
+                                        <option key={r} value={r}>{r}</option>
+                                    ))}
+                                    <option value="Other">Other (Custom Role)</option>
+                                </select>
+                            </Field>
                             <Field icon={<FileText size={17} />} label="Experience"><input style={fieldStyle} value={form.exp} onChange={e => setValue('exp', e.target.value)} onFocus={focusInput} onBlur={blurInput} maxLength={40} placeholder="2 years" /></Field>
                         </div>
+                        {isCustomRole && (
+                            <div style={{ marginBottom: '1.35rem' }}>
+                                <Field icon={<Briefcase size={17} />} label="Specify Your Custom Role *">
+                                    <input 
+                                        style={fieldStyle} 
+                                        value={form.role} 
+                                        onChange={e => setValue('role', e.target.value)} 
+                                        onFocus={focusInput} 
+                                        onBlur={blurInput} 
+                                        required 
+                                        maxLength={80} 
+                                        placeholder="e.g. Flutter Developer, HR Analyst" 
+                                    />
+                                </Field>
+                            </div>
+                        )}
 
                         <SectionTitle title="Profile Summary" description="Add skills, portfolio links, notice period, expected salary, or anything useful." />
                         <Field icon={<FileText size={17} />} label="Notes / Skills">

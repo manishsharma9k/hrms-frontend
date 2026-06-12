@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { Briefcase, Plus, X, Mail, Send, ArrowLeft, QrCode, Copy, ExternalLink, RefreshCw, Share2, Download } from 'lucide-react';
+import { Briefcase, Plus, X, Mail, Send, ArrowLeft, QrCode, Copy, ExternalLink, RefreshCw, Share2, Download, FileText, Calendar, User, MapPin, Phone, Clock, File } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
@@ -43,6 +43,66 @@ const Recruitment = () => {
     const [error, setError] = useState('');
     const applicationUrl = `${window.location.origin}/candidate-apply`;
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=12&data=${encodeURIComponent(applicationUrl)}`;
+
+    const [selectedCandidate, setSelectedCandidate] = useState(null);
+    const [detailForm, setDetailForm] = useState({
+        name: '', email: '', phone: '', role: '', exp: '', location: '', notes: '', stage: '', interviewDate: '', interviewMode: ''
+    });
+    const [savingDetail, setSavingDetail] = useState(false);
+
+    useEffect(() => {
+        if (selectedCandidate) {
+            setDetailForm({
+                name: selectedCandidate.name || '',
+                email: selectedCandidate.email || '',
+                phone: selectedCandidate.phone || '',
+                role: selectedCandidate.role || '',
+                exp: selectedCandidate.exp || '',
+                location: selectedCandidate.location || '',
+                notes: selectedCandidate.notes || '',
+                stage: selectedCandidate.stage || 'Applied',
+                interviewDate: selectedCandidate.interviewDate ? new Date(selectedCandidate.interviewDate).toISOString().substring(0, 10) : '',
+                interviewMode: selectedCandidate.interviewMode || ''
+            });
+        }
+    }, [selectedCandidate]);
+
+    const getCvUrl = (cvPath) => {
+        if (!cvPath) return '';
+        const base = api.defaults.baseURL.replace(/\/api$/, '');
+        return `${base}${cvPath}`;
+    };
+
+    const handleSaveCandidate = async (e) => {
+        e.preventDefault();
+        setSavingDetail(true);
+        try {
+            await api.put(`/admin/recruitment/${selectedCandidate._id}`, {
+                name: detailForm.name,
+                email: detailForm.email,
+                phone: detailForm.phone,
+                role: detailForm.role,
+                exp: detailForm.exp,
+                location: detailForm.location,
+            });
+
+            await api.put(`/admin/recruitment/${selectedCandidate._id}/action`, {
+                stage: detailForm.stage,
+                interviewDate: detailForm.interviewDate || null,
+                interviewMode: detailForm.interviewMode || '',
+                notes: detailForm.notes,
+                action: 'Updated candidate details & status'
+            });
+
+            toast.success('Candidate details updated successfully');
+            setSelectedCandidate(null);
+            fetchCandidates();
+        } catch (err) {
+            toast.error(err.response?.data?.error || 'Failed to update candidate');
+        } finally {
+            setSavingDetail(false);
+        }
+    };
 
     const copyApplicationLink = async () => {
         try {
@@ -246,45 +306,51 @@ const Recruitment = () => {
                                 <span style={{ background: '#fff', border: `1px solid ${cfg.border}`, color: '#475569', padding: '0.1rem 0.5rem', borderRadius: '9999px', fontSize: '0.7rem', fontWeight: 700 }}>{candidates.length}</span>
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-                                {candidates.map(c => (
-                                    <div key={c._id} draggable
-                                        onDragStart={() => setDragging({ candidate: c, fromCol: stage })}
-                                        style={{ background: '#fff', borderRadius: '0.625rem', padding: '0.75rem', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', cursor: 'grab', position: 'relative' }}>
-                                        <button onClick={() => removeCandidate(c._id, stage)} style={{ position: 'absolute', top: '0.375rem', right: '0.375rem', background: 'none', border: 'none', color: '#CBD5E1', cursor: 'pointer', padding: '0.125rem', display: 'flex' }}
-                                            onMouseEnter={e => e.currentTarget.style.color = '#EF4444'}
-                                            onMouseLeave={e => e.currentTarget.style.color = '#CBD5E1'}>
-                                            <X size={12} />
-                                        </button>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                                            <div className="avatar avatar-sm" style={{ background: `hsl(${c.name.charCodeAt(0) * 10},65%,55%)`, fontSize: '0.7rem' }}>{c.name.charAt(0)}</div>
-                                            <div style={{ minWidth: 0 }}>
-                                                <p style={{ margin: 0, fontWeight: 700, fontSize: '0.78rem', color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</p>
-                                            </div>
-                                        </div>
-                                        <p style={{ margin: '0 0 0.375rem', fontSize: '0.72rem', color: '#4F46E5', fontWeight: 600 }}>{c.role}</p>
-                                        {c.email && <p style={{ margin: '0 0 0.375rem', fontSize: '0.68rem', color: '#64748B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.email}</p>}
-                                        <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap' }}>
-                                            {c.exp && <span style={{ fontSize: '0.65rem', color: '#64748B', background: '#F1F5F9', padding: '0.1rem 0.4rem', borderRadius: '0.25rem' }}>{c.exp}</span>}
-                                            {c.location && <span style={{ fontSize: '0.65rem', color: '#64748B', background: '#F1F5F9', padding: '0.1rem 0.4rem', borderRadius: '0.25rem' }}>{c.location}</span>}
-                                        </div>
-                                        {/* Move buttons */}
-                                        <div style={{ display: 'flex', gap: '0.25rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
-                                            {Object.keys(pipeline).filter(s => s !== stage).map(s => (
-                                                <button key={s} onClick={() => moveCandidate(c, stage, s)}
-                                                    style={{ fontSize: '0.6rem', padding: '0.15rem 0.4rem', background: colColors[s].bg, border: `1px solid ${colColors[s].border}`, borderRadius: '0.25rem', color: '#475569', cursor: 'pointer', fontWeight: 600 }}>
-                                                    → {s}
-                                                </button>
-                                            ))}
-                                        </div>
-                                        {/* Offer Letter Button — show for Offer & Hired stage */}
-                                        {(stage === 'Offer' || stage === 'Hired') && (
-                                            <button onClick={() => openOfferModal(c)}
-                                                style={{ marginTop: '0.5rem', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', padding: '0.3rem 0', background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', border: 'none', borderRadius: '0.375rem', color: '#fff', fontSize: '0.65rem', fontWeight: 700, cursor: 'pointer' }}>
-                                                <Mail size={11} /> Send Offer Letter
-                                            </button>
-                                        )}
-                                    </div>
-                                ))}
+                                 {candidates.map(c => (
+                                     <div key={c._id} draggable
+                                         onDragStart={() => setDragging({ candidate: c, fromCol: stage })}
+                                         onClick={() => setSelectedCandidate(c)}
+                                         style={{ background: '#fff', borderRadius: '0.625rem', padding: '0.75rem', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', cursor: 'pointer', position: 'relative' }}>
+                                         <button onClick={(e) => { e.stopPropagation(); removeCandidate(c._id, stage); }} style={{ position: 'absolute', top: '0.375rem', right: '0.375rem', background: 'none', border: 'none', color: '#CBD5E1', cursor: 'pointer', padding: '0.125rem', display: 'flex' }}
+                                             onMouseEnter={e => e.currentTarget.style.color = '#EF4444'}
+                                             onMouseLeave={e => e.currentTarget.style.color = '#CBD5E1'}>
+                                             <X size={12} />
+                                         </button>
+                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                                             <div className="avatar avatar-sm" style={{ background: `hsl(${c.name.charCodeAt(0) * 10},65%,55%)`, fontSize: '0.7rem' }}>{c.name.charAt(0)}</div>
+                                             <div style={{ minWidth: 0 }}>
+                                                 <p style={{ margin: 0, fontWeight: 700, fontSize: '0.78rem', color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</p>
+                                             </div>
+                                         </div>
+                                         <p style={{ margin: '0 0 0.375rem', fontSize: '0.72rem', color: '#4F46E5', fontWeight: 600 }}>{c.role}</p>
+                                         {c.email && <p style={{ margin: '0 0 0.375rem', fontSize: '0.68rem', color: '#64748B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.email}</p>}
+                                         <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                                             {c.exp && <span style={{ fontSize: '0.65rem', color: '#64748B', background: '#F1F5F9', padding: '0.1rem 0.4rem', borderRadius: '0.25rem' }}>{c.exp}</span>}
+                                             {c.location && <span style={{ fontSize: '0.65rem', color: '#64748B', background: '#F1F5F9', padding: '0.1rem 0.4rem', borderRadius: '0.25rem' }}>{c.location}</span>}
+                                             {c.cv && (
+                                                 <span style={{ fontSize: '0.65rem', color: '#4F46E5', background: '#EEF2FF', padding: '0.1rem 0.4rem', borderRadius: '0.25rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                                                     <FileText size={10} /> CV
+                                                 </span>
+                                             )}
+                                         </div>
+                                         {/* Move buttons */}
+                                         <div style={{ display: 'flex', gap: '0.25rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+                                             {Object.keys(pipeline).filter(s => s !== stage).map(s => (
+                                                 <button key={s} onClick={(e) => { e.stopPropagation(); moveCandidate(c, stage, s); }}
+                                                     style={{ fontSize: '0.6rem', padding: '0.15rem 0.4rem', background: colColors[s].bg, border: `1px solid ${colColors[s].border}`, borderRadius: '0.25rem', color: '#475569', cursor: 'pointer', fontWeight: 600 }}>
+                                                     → {s}
+                                                 </button>
+                                             ))}
+                                         </div>
+                                         {/* Offer Letter Button — show for Offer & Hired stage */}
+                                         {(stage === 'Offer' || stage === 'Hired') && (
+                                             <button onClick={(e) => { e.stopPropagation(); openOfferModal(c); }}
+                                                 style={{ marginTop: '0.5rem', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', padding: '0.3rem 0', background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', border: 'none', borderRadius: '0.375rem', color: '#fff', fontSize: '0.65rem', fontWeight: 700, cursor: 'pointer' }}>
+                                                 <Mail size={11} /> Send Offer Letter
+                                             </button>
+                                         )}
+                                     </div>
+                                 ))}
                                 {candidates.length === 0 && (
                                     <div style={{ padding: '1.5rem', textAlign: 'center', color: '#CBD5E1', fontSize: '0.75rem', border: '2px dashed #E2E8F0', borderRadius: '0.625rem' }}>Drop here</div>
                                 )}
@@ -454,6 +520,151 @@ const Recruitment = () => {
                                 <button className="btn btn-primary" onClick={addCandidate}>Add Candidate</button>
                             </div>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Candidate Details Modal */}
+            {selectedCandidate && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+                    <div style={{ background: '#fff', borderRadius: '1rem', width: '100%', maxWidth: '850px', maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 24px 64px rgba(0,0,0,0.22)' }}>
+                        {/* Header */}
+                        <div style={{ background: 'linear-gradient(135deg,#06B6D4,#0891B2)', padding: '1.25rem 1.5rem', borderRadius: '1rem 1rem 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: '0.5rem', padding: '0.45rem', display: 'flex' }}><User size={18} color="#fff" /></div>
+                                <div>
+                                    <h3 style={{ margin: 0, color: '#fff', fontSize: '1.1rem', fontWeight: 700 }}>Candidate Profile & Action Center</h3>
+                                    <p style={{ margin: 0, color: 'rgba(255,255,255,0.85)', fontSize: '0.75rem' }}>View resume, edit details, timeline history, and take action</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setSelectedCandidate(null)} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '0.375rem', color: '#fff', cursor: 'pointer', padding: '0.3rem', display: 'flex' }}><X size={18} /></button>
+                        </div>
+
+                        <form onSubmit={handleSaveCandidate} style={{ padding: '1.5rem', display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1.5rem' }}>
+                            {/* Left Col: Details & Action Form */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+                                <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '0.75rem', padding: '1rem' }}>
+                                    <h4 style={{ margin: '0 0 0.8rem', fontSize: '0.82rem', fontWeight: 700, color: '#0891B2', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Candidate Details</h4>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                        <div className="form-group" style={{ margin: 0 }}>
+                                            <label className="form-label" style={{ fontSize: '0.75rem' }}>Full Name *</label>
+                                            <input className="form-input" style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem' }} required value={detailForm.name} onChange={e => setDetailForm({ ...detailForm, name: e.target.value })} />
+                                        </div>
+                                        <div className="form-group" style={{ margin: 0 }}>
+                                            <label className="form-label" style={{ fontSize: '0.75rem' }}>Email Address</label>
+                                            <input type="email" className="form-input" style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem' }} value={detailForm.email} onChange={e => setDetailForm({ ...detailForm, email: e.target.value })} />
+                                        </div>
+                                        <div className="form-group" style={{ margin: 0 }}>
+                                            <label className="form-label" style={{ fontSize: '0.75rem' }}>Phone Number</label>
+                                            <input className="form-input" style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem' }} value={detailForm.phone} onChange={e => setDetailForm({ ...detailForm, phone: e.target.value })} />
+                                        </div>
+                                        <div className="form-group" style={{ margin: 0 }}>
+                                            <label className="form-label" style={{ fontSize: '0.75rem' }}>Location</label>
+                                            <input className="form-input" style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem' }} value={detailForm.location} onChange={e => setDetailForm({ ...detailForm, location: e.target.value })} />
+                                        </div>
+                                        <div className="form-group" style={{ margin: 0 }}>
+                                            <label className="form-label" style={{ fontSize: '0.75rem' }}>Role *</label>
+                                            <input className="form-input" style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem' }} required value={detailForm.role} onChange={e => setDetailForm({ ...detailForm, role: e.target.value })} />
+                                        </div>
+                                        <div className="form-group" style={{ margin: 0 }}>
+                                            <label className="form-label" style={{ fontSize: '0.75rem' }}>Experience</label>
+                                            <input className="form-input" style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem' }} value={detailForm.exp} onChange={e => setDetailForm({ ...detailForm, exp: e.target.value })} />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '0.75rem', padding: '1rem' }}>
+                                    <h4 style={{ margin: '0 0 0.8rem', fontSize: '0.82rem', fontWeight: 700, color: '#0891B2', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Take Action & Schedule</h4>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                        <div className="form-group" style={{ margin: 0 }}>
+                                            <label className="form-label" style={{ fontSize: '0.75rem' }}>Recruitment Stage</label>
+                                            <select className="form-input" style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem' }} value={detailForm.stage} onChange={e => setDetailForm({ ...detailForm, stage: e.target.value })}>
+                                                {Object.keys(colColors).map(st => (
+                                                    <option key={st} value={st}>{st}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="form-group" style={{ margin: 0 }}>
+                                            <label className="form-label" style={{ fontSize: '0.75rem' }}>Interview Mode</label>
+                                            <select className="form-input" style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem' }} value={detailForm.interviewMode} onChange={e => setDetailForm({ ...detailForm, interviewMode: e.target.value })}>
+                                                <option value="">None</option>
+                                                <option value="Online">Online</option>
+                                                <option value="In-Person">In-Person</option>
+                                            </select>
+                                        </div>
+                                        <div className="form-group" style={{ margin: 0, gridColumn: '1 / -1' }}>
+                                            <label className="form-label" style={{ fontSize: '0.75rem' }}>Interview Date</label>
+                                            <input type="date" className="form-input" style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem' }} value={detailForm.interviewDate} onChange={e => setDetailForm({ ...detailForm, interviewDate: e.target.value })} />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="form-group" style={{ margin: 0 }}>
+                                    <label className="form-label" style={{ fontSize: '0.75rem' }}>Notes / Candidate Feedback</label>
+                                    <textarea className="form-input" rows={3} style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem', resize: 'vertical' }} value={detailForm.notes} onChange={e => setDetailForm({ ...detailForm, notes: e.target.value })} placeholder="Add notes, feedback, communication skills info..." />
+                                </div>
+
+                                <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                                    <button type="submit" disabled={savingDetail} className="btn btn-primary" style={{ flex: 1, padding: '0.6rem', background: 'linear-gradient(135deg,#06B6D4,#0891B2)', fontSize: '0.85rem', fontWeight: 700, border: 'none', borderRadius: '0.5rem', color: '#fff', cursor: 'pointer' }}>
+                                        {savingDetail ? 'Saving Changes...' : 'Save Profile & Action'}
+                                    </button>
+                                    <button type="button" onClick={() => setSelectedCandidate(null)} className="btn btn-outline" style={{ flex: 1, padding: '0.6rem', fontSize: '0.85rem', fontWeight: 600 }}>Cancel</button>
+                                </div>
+                            </div>
+
+                            {/* Right Col: Resume & Timeline */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                <div>
+                                    <h4 style={{ margin: '0 0 0.6rem', fontSize: '0.82rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Resume / CV</h4>
+                                    {selectedCandidate.cv ? (
+                                        <div style={{ background: '#ECFEFF', border: '1px solid #A5F3FC', borderRadius: '0.75rem', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center', textAlign: 'center' }}>
+                                            <FileText size={36} color="#0891B2" />
+                                            <div>
+                                                <p style={{ margin: 0, fontWeight: 800, fontSize: '0.82rem', color: '#0891B2' }}>Resume Uploaded</p>
+                                                <p style={{ margin: '0.15rem 0 0', fontSize: '0.68rem', color: '#64748B' }}>Path: {selectedCandidate.cv.split('/').pop()}</p>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
+                                                <a href={getCvUrl(selectedCandidate.cv)} target="_blank" rel="noreferrer" className="btn btn-outline" style={{ flex: 1, textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', fontSize: '0.75rem', padding: '0.45rem 0' }}>
+                                                    <ExternalLink size={13} /> View CV
+                                                </a>
+                                                <a href={getCvUrl(selectedCandidate.cv)} download className="btn btn-primary" style={{ flex: 1, textDecoration: 'none', background: 'linear-gradient(135deg,#06B6D4,#0891B2)', border: 'none', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', fontSize: '0.75rem', padding: '0.45rem 0' }}>
+                                                    <Download size={13} /> Download
+                                                </a>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div style={{ background: '#F8FAFC', border: '1px dashed #E2E8F0', borderRadius: '0.75rem', padding: '1.5rem', textAlign: 'center', color: '#94a3b8' }}>
+                                            <File size={24} style={{ marginBottom: '0.5rem', opacity: 0.5 }} />
+                                            <p style={{ margin: 0, fontSize: '0.75rem' }}>No resume uploaded by candidate</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                    <h4 style={{ margin: '0 0 0.6rem', fontSize: '0.82rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Action Log & Timeline</h4>
+                                    <div style={{ flex: 1, background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '0.75rem', padding: '1rem', maxHeight: '280px', overflowY: 'auto' }}>
+                                        {selectedCandidate.actionLog && selectedCandidate.actionLog.length > 0 ? (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                                {selectedCandidate.actionLog.map((log, idx) => (
+                                                    <div key={idx} style={{ padding: '0.6rem', background: '#fff', borderLeft: '3px solid #0891B2', borderRadius: '0.25rem', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+                                                        <p style={{ margin: 0, fontWeight: 700, fontSize: '0.75rem', color: '#0F172A' }}>{log.action}</p>
+                                                        <p style={{ margin: '0.1rem 0 0', fontSize: '0.68rem', color: '#64748B' }}>
+                                                            by {log.byName || 'System'} on {new Date(log.at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                        </p>
+                                                        {log.note && <p style={{ margin: '0.25rem 0 0', fontSize: '0.7rem', color: '#475569', fontStyle: 'italic', background: '#F8FAFC', padding: '0.2rem 0.4rem', borderRadius: '0.2rem' }}>"{log.note}"</p>}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94a3b8', textAlign: 'center', padding: '1rem' }}>
+                                                <Clock size={20} style={{ marginBottom: '0.4rem', opacity: 0.5 }} />
+                                                <p style={{ margin: 0, fontSize: '0.75rem' }}>No actions logged yet.</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}
