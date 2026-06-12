@@ -114,7 +114,7 @@ const CandidateApply = () => {
                             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.16)', borderRadius: 999, padding: '0.45rem 0.9rem', fontSize: '0.82rem', fontWeight: 900, marginBottom: '1rem' }}>
                                 <Briefcase size={14} /> Candidate Application
                             </div>
-                            <h1 style={{ margin: 0, fontSize: 'clamp(2.35rem, 6vw, 4.6rem)', lineHeight: 1.02, letterSpacing: 0 }}>Start your next role with HRMS.</h1>
+                            <h1 style={{ margin: 0, fontSize: 'clamp(2.35rem, 6vw, 4.6rem)', lineHeight: 1.02, letterSpacing: 0, color: '#fff' }}>Start your next role with HRMS.</h1>
                             <p style={{ margin: '1rem 0 0', color: 'rgba(255,255,255,0.78)', fontSize: '1.06rem', lineHeight: 1.65, maxWidth: 590 }}>Tell us who you are, what you build best, and where you want to grow. Your application goes directly to the recruitment pipeline for HR review.</p>
                             <div style={{ display: 'flex', gap: '0.7rem', flexWrap: 'wrap', marginTop: '1.4rem' }}>
                                 {['Fast HR review', 'Resume optional', 'Direct dashboard entry'].map(item => (
