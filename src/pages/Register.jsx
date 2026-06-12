@@ -78,9 +78,17 @@ const Register = () => {
         authAPI.getDepartments()
             .then(r => {
                 const data = r.data.data || [];
-                setDepartments(data);
+                if (data.length > 0) {
+                    setDepartments(data);
+                } else {
+                    // DB mein departments nahi hain — static list use karo
+                    setDepartments(STATIC_DEPARTMENTS.map((name, i) => ({ _id: name, name })));
+                }
             })
-            .catch(() => {})
+            .catch(() => {
+                // API fail — static fallback
+                setDepartments(STATIC_DEPARTMENTS.map((name, i) => ({ _id: name, name })));
+            })
             .finally(() => setDeptLoading(false));
     }, []);
 
@@ -98,9 +106,9 @@ const Register = () => {
         setLocalError('');
         setIsLoading(true);
         try {
-            // Only send department if it's a valid MongoDB ObjectId
+            // MongoDB ObjectId ho toh directly bhejo, warna department name bhejo
             const mongoose_id_regex = /^[a-f\d]{24}$/i;
-            const deptValue = mongoose_id_regex.test(formData.department) ? formData.department : null;
+            const deptValue = formData.department || null;
             const userRes = await register(formData.name, formData.email, formData.password, deptValue, formData.technology, photo);
             setCreatedUser(userRes);
             setShowConfirm(true);
