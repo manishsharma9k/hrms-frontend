@@ -81,13 +81,11 @@ const Register = () => {
                 if (data.length > 0) {
                     setDepartments(data);
                 } else {
-                    // DB mein departments nahi hain — static list use karo
-                    setDepartments(STATIC_DEPARTMENTS.map((name, i) => ({ _id: name, name })));
+                    setDepartments(STATIC_DEPARTMENTS.map((name) => ({ _id: null, name })));
                 }
             })
             .catch(() => {
-                // API fail — static fallback
-                setDepartments(STATIC_DEPARTMENTS.map((name, i) => ({ _id: name, name })));
+                setDepartments(STATIC_DEPARTMENTS.map((name) => ({ _id: null, name })));
             })
             .finally(() => setDeptLoading(false));
     }, []);
@@ -118,7 +116,7 @@ const Register = () => {
     };
 
     // Department _id se name nikalo for tech mapping
-    const selectedDeptName = departments.find(d => d._id === formData.department)?.name || formData.department || '';
+    const selectedDeptName = departments.find(d => (d._id || d.name) === formData.department)?.name || formData.department || '';
     const availableTechs = getTechsForDept(selectedDeptName);
 
     const handleDeptChange = (val) => {
@@ -226,10 +224,7 @@ const Register = () => {
                                             onFocus={onFocus} onBlur={onBlur}
                                         >
                                             <option value="">Select Department</option>
-                                            {departments.length > 0
-                                                ? departments.map(d => <option key={d._id} value={d._id}>{d.name}</option>)
-                                                : <option value="" disabled>No departments found — contact admin</option>
-                                            }
+                                            {departments.map(d => <option key={d.name} value={d._id || d.name}>{d.name}</option>)}
                                         </select>
                                         <div style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', right: '1rem', color: '#9CA3AF', pointerEvents: 'none' }}>
                                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6" /></svg>
@@ -298,7 +293,7 @@ const Register = () => {
                             <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '0.6rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <span style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 500 }}>Department</span>
                                 <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0F172A' }}>
-                                                    {departments.find(d => d._id === formData.department)?.name || formData.department || '—'}
+                                                    {departments.find(d => (d._id || d.name) === formData.department)?.name || formData.department || '—'}
                                                 </span>
                             </div>
                             <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '0.6rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
