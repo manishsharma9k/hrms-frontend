@@ -4,6 +4,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import AdminLogin from './pages/AdminLogin';
 import AdminRegister from './pages/AdminRegister';
+import GoogleAuthSuccess from './pages/auth/GoogleAuthSuccess';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import CandidateApply from './pages/CandidateApply';
@@ -31,6 +32,8 @@ import LeaveRequests from './pages/employee/LeaveRequests';
 import Attendance from './pages/employee/Attendance';
 import SalaryDetails from './pages/employee/SalaryDetails';
 
+import GoogleAuthSuccess from './pages/auth/GoogleAuthSuccess';
+
 function App() {
   return (
     <Router>
@@ -42,6 +45,8 @@ function App() {
         <Route path="/admin-register" element={<AdminRegister />} />
         <Route path="/forgotpassword" element={<ForgotPassword />} />
         <Route path="/resetpassword/:token" element={<ResetPassword />} />
+        <Route path="/auth/google/success" element={<GoogleAuthSuccess />} />
+        <Route path="/auth/google/success" element={<GoogleAuthSuccess />} />
         <Route path="/candidate-apply" element={<CandidateApply />} />
 
         {/* Admin Routes */}
