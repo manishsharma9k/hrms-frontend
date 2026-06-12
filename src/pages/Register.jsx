@@ -79,9 +79,8 @@ const Register = () => {
             .then(r => {
                 const data = r.data.data || [];
                 setDepartments(data);
-                if (data.length === 0) setManualDept(true);
             })
-            .catch(() => setManualDept(true))
+            .catch(() => {})
             .finally(() => setDeptLoading(false));
     }, []);
 
@@ -111,8 +110,8 @@ const Register = () => {
         }
     };
 
-    // Department select hone par technology reset + relevant techs compute
-    const selectedDeptName = formData.department || '';
+    // Department _id se name nikalo for tech mapping
+    const selectedDeptName = departments.find(d => d._id === formData.department)?.name || formData.department || '';
     const availableTechs = getTechsForDept(selectedDeptName);
 
     const handleDeptChange = (val) => {
@@ -204,22 +203,32 @@ const Register = () => {
                             <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#374151', marginBottom: '0.4rem' }}>Department</label>
                             <div style={{ position: 'relative' }}>
                                 <div style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: '1rem', color: '#9CA3AF', display: 'flex' }}><Building size={20} /></div>
-                                <select
-                                    name="department"
-                                    value={formData.department}
-                                    onChange={e => handleDeptChange(e.target.value)}
-                                    required
-                                    style={{ ...inputStyle, appearance: 'none', color: formData.department ? '#111827' : '#9CA3AF' }}
-                                    onFocus={onFocus} onBlur={onBlur}
-                                >
-                                    <option value="">Select Department</option>
-                                    {STATIC_DEPARTMENTS.map(d => (
-                                        <option key={d} value={d}>{d}</option>
-                                    ))}
-                                </select>
-                                <div style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', right: '1rem', color: '#9CA3AF', pointerEvents: 'none' }}>
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6" /></svg>
-                                </div>
+                                {deptLoading ? (
+                                    <div style={{ ...inputStyle, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#9CA3AF', paddingLeft: '3rem' }}>
+                                        <div style={{ width: '14px', height: '14px', border: '2px solid #D1D5DB', borderTop: '2px solid #10B981', borderRadius: '50%', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />
+                                        Loading...
+                                    </div>
+                                ) : (
+                                    <>
+                                        <select
+                                            name="department"
+                                            value={formData.department}
+                                            onChange={e => handleDeptChange(e.target.value)}
+                                            required
+                                            style={{ ...inputStyle, appearance: 'none', color: formData.department ? '#111827' : '#9CA3AF' }}
+                                            onFocus={onFocus} onBlur={onBlur}
+                                        >
+                                            <option value="">Select Department</option>
+                                            {departments.length > 0
+                                                ? departments.map(d => <option key={d._id} value={d._id}>{d.name}</option>)
+                                                : STATIC_DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)
+                                            }
+                                        </select>
+                                        <div style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', right: '1rem', color: '#9CA3AF', pointerEvents: 'none' }}>
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6" /></svg>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         </div>
 
@@ -282,7 +291,7 @@ const Register = () => {
                             <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '0.6rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <span style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 500 }}>Department</span>
                                 <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0F172A' }}>
-                                                    {formData.department || '—'}
+                                                    {departments.find(d => d._id === formData.department)?.name || formData.department || '—'}
                                                 </span>
                             </div>
                             <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '0.6rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
