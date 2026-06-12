@@ -30,8 +30,8 @@ const AdminRegister = () => {
         setIsLoading(true);
         try {
             const res = await api.post('/auth/admin/register', { ...formData, photo });
-            localStorage.setItem('token', res.data.token);
-            navigate('/admin');
+            // Don't store token or auto-login — redirect to admin login
+            navigate('/admin-login', { state: { success: 'Admin account created! Please sign in.' } });
         } catch (err) {
             setLocalError(err.response?.data?.error || 'Registration failed');
             setIsLoading(false);

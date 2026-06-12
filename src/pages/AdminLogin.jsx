@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { Mail, Lock, Shield, ArrowRight, LogIn, X, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -9,6 +9,8 @@ const AdminLogin = () => {
     const [password, setPassword] = useState('');
     const { login, error, user } = useContext(AuthContext);
     const navigate = useNavigate();
+    const location = useLocation();
+    const successMsg = location.state?.success || '';
     const [localError, setLocalError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
@@ -117,6 +119,12 @@ const AdminLogin = () => {
                         <h2 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#111827', marginBottom: '0.5rem', letterSpacing: '-0.5px' }}>Admin Sign In</h2>
                         <p style={{ color: '#6B7280', fontSize: '1rem' }}>Enter your admin credentials to continue.</p>
                     </div>
+
+                    {successMsg && (
+                        <div style={{ background: '#F0FDF4', borderLeft: '4px solid #10B981', color: '#065F46', padding: '1rem', borderRadius: '0.375rem', marginBottom: '1.5rem', fontSize: '0.875rem', fontWeight: 600 }}>
+                            ✅ {successMsg}
+                        </div>
+                    )}
 
                     {(error || localError) && (
                         <div style={{
