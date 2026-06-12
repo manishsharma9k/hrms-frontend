@@ -62,7 +62,7 @@ const Register = () => {
     const [photo, setPhoto] = useState('');
     const [photoPreview, setPhotoPreview] = useState('');
     const [departments, setDepartments] = useState([]);
-    const [deptLoading, setDeptLoading] = useState(false);
+    const [deptLoading, setDeptLoading] = useState(true);
     const [manualDept, setManualDept] = useState(false);
     const { register, error } = useContext(AuthContext);
     const navigate = useNavigate();
@@ -98,14 +98,14 @@ const Register = () => {
         setLocalError('');
         setIsLoading(true);
         try {
-            const deptValue = manualDept
-                ? formData.department  // plain text name
-                : formData.department; // _id from dropdown
+            // Only send department if it's a valid MongoDB ObjectId
+            const mongoose_id_regex = /^[a-f\d]{24}$/i;
+            const deptValue = mongoose_id_regex.test(formData.department) ? formData.department : null;
             const userRes = await register(formData.name, formData.email, formData.password, deptValue, formData.technology, photo);
             setCreatedUser(userRes);
             setShowConfirm(true);
         } catch (err) {
-            setLocalError('Registration failed. Please check your details.');
+            setLocalError(err?.response?.data?.error || 'Registration failed. Please check your details.');
             setIsLoading(false);
         }
     };
@@ -221,7 +221,7 @@ const Register = () => {
                                             <option value="">Select Department</option>
                                             {departments.length > 0
                                                 ? departments.map(d => <option key={d._id} value={d._id}>{d.name}</option>)
-                                                : STATIC_DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)
+                                                : <option value="" disabled>No departments found — contact admin</option>
                                             }
                                         </select>
                                         <div style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', right: '1rem', color: '#9CA3AF', pointerEvents: 'none' }}>
