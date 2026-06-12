@@ -1,16 +1,70 @@
 import React, { useState, useContext, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { UserPlus, Mail, Lock, Building, ArrowRight, User, Camera, Eye, EyeOff } from 'lucide-react';
+import { authAPI } from '../services/api';
+import { Mail, Lock, Building, ArrowRight, User, Camera, Eye, EyeOff } from 'lucide-react';
 
-const techOptions = ['React', 'Node.js', 'Angular', 'Vue.js', 'Python', 'Java', 'C#', 'DevOps', 'UI/UX', 'Data Science'];
+// Department name se technology mapping (case-insensitive partial match)
+const DEPT_TECH_MAP = {
+    'engineering':      ['React', 'Node.js', 'Angular', 'Vue.js', 'Python', 'Java', 'C#', 'DevOps', 'TypeScript', 'Go'],
+    'it':               ['React', 'Node.js', 'Python', 'Java', 'DevOps', 'C#', 'TypeScript', 'Linux', 'Networking', 'Cybersecurity'],
+    'it support':       ['Linux', 'Networking', 'Cybersecurity', 'Windows Server', 'DevOps', 'Cloud (AWS)', 'Python'],
+    'human resources':  ['HR Software', 'Excel / Sheets', 'Zoho People', 'BambooHR', 'Darwinbox', 'SAP HR'],
+    'hr':               ['HR Software', 'Excel / Sheets', 'Zoho People', 'BambooHR', 'Darwinbox', 'SAP HR'],
+    'finance':          ['Tally', 'SAP FICO', 'Excel / Sheets', 'QuickBooks', 'Zoho Books', 'Power BI'],
+    'accounts':         ['Tally', 'SAP FICO', 'Excel / Sheets', 'QuickBooks', 'Zoho Books'],
+    'marketing':        ['Google Ads', 'Meta Ads', 'SEO / SEM', 'Content Marketing', 'Canva', 'HubSpot', 'Mailchimp'],
+    'sales':            ['Salesforce', 'Zoho CRM', 'HubSpot CRM', 'Excel / Sheets', 'Cold Calling', 'Lead Generation'],
+    'operations':       ['Excel / Sheets', 'ERP Systems', 'SAP', 'Power BI', 'Tableau', 'Lean / Six Sigma'],
+    'design':           ['Figma', 'Adobe XD', 'Photoshop', 'Illustrator', 'UI/UX', 'Sketch', 'InVision'],
+    'ui':               ['Figma', 'Adobe XD', 'UI/UX', 'Sketch', 'Photoshop', 'Illustrator'],
+    'ux':               ['Figma', 'Adobe XD', 'UI/UX', 'User Research', 'Prototyping'],
+    'data':             ['Python', 'Data Science', 'Machine Learning', 'SQL', 'Power BI', 'Tableau', 'R'],
+    'analytics':        ['Python', 'SQL', 'Power BI', 'Tableau', 'Excel / Sheets', 'Data Science'],
+    'devops':           ['DevOps', 'Docker', 'Kubernetes', 'AWS', 'CI/CD', 'Linux', 'Terraform'],
+    'product':          ['Product Management', 'Jira', 'Figma', 'Agile / Scrum', 'Roadmapping'],
+    'customer':         ['CRM Tools', 'Zendesk', 'Freshdesk', 'Communication', 'Excel / Sheets'],
+    'legal':            ['Legal Research', 'MS Word', 'Contract Management', 'ComplianceTools'],
+    'admin':            ['MS Office', 'Excel / Sheets', 'Tally', 'Communication', 'Scheduling Tools'],
+};
+
+const DEFAULT_TECHS = ['React', 'Node.js', 'Angular', 'Vue.js', 'Python', 'Java', 'C#', 'DevOps', 'UI/UX', 'Data Science'];
+
+const STATIC_DEPARTMENTS = [
+    'Engineering',
+    'IT Support',
+    'Human Resources',
+    'Finance',
+    'Accounts',
+    'Marketing',
+    'Sales',
+    'Operations',
+    'Design',
+    'Data & Analytics',
+    'DevOps',
+    'Product Management',
+    'Customer Support',
+    'Legal',
+    'Administration',
+];
+
+const getTechsForDept = (deptName) => {
+    if (!deptName) return [];
+    const lower = deptName.toLowerCase();
+    for (const key of Object.keys(DEPT_TECH_MAP)) {
+        if (lower.includes(key)) return DEPT_TECH_MAP[key];
+    }
+    return DEFAULT_TECHS;
+};
 
 const Register = () => {
     const [formData, setFormData] = useState({ name: '', email: '', password: '', department: '', technology: '' });
     const [photo, setPhoto] = useState('');
     const [photoPreview, setPhotoPreview] = useState('');
     const [departments, setDepartments] = useState([]);
-    const { register, error, api } = useContext(AuthContext);
+    const [deptLoading, setDeptLoading] = useState(false);
+    const [manualDept, setManualDept] = useState(false);
+    const { register, error } = useContext(AuthContext);
     const navigate = useNavigate();
     const [localError, setLocalError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -20,8 +74,16 @@ const Register = () => {
     const fileRef = useRef();
 
     useEffect(() => {
-        api.get('/auth/departments').then(r => setDepartments(r.data.data || [])).catch(() => {});
-    }, [api]);
+        setDeptLoading(true);
+        authAPI.getDepartments()
+            .then(r => {
+                const data = r.data.data || [];
+                setDepartments(data);
+                if (data.length === 0) setManualDept(true);
+            })
+            .catch(() => setManualDept(true))
+            .finally(() => setDeptLoading(false));
+    }, []);
 
     const handlePhoto = (e) => {
         const file = e.target.files[0];
@@ -37,13 +99,24 @@ const Register = () => {
         setLocalError('');
         setIsLoading(true);
         try {
-            const userRes = await register(formData.name, formData.email, formData.password, formData.department, formData.technology, photo);
+            const deptValue = manualDept
+                ? formData.department  // plain text name
+                : formData.department; // _id from dropdown
+            const userRes = await register(formData.name, formData.email, formData.password, deptValue, formData.technology, photo);
             setCreatedUser(userRes);
             setShowConfirm(true);
         } catch (err) {
             setLocalError('Registration failed. Please check your details.');
             setIsLoading(false);
         }
+    };
+
+    // Department select hone par technology reset + relevant techs compute
+    const selectedDeptName = formData.department || '';
+    const availableTechs = getTechsForDept(selectedDeptName);
+
+    const handleDeptChange = (val) => {
+        setFormData(f => ({ ...f, department: val, technology: '' }));
     };
 
     const inputStyle = {
@@ -131,9 +204,18 @@ const Register = () => {
                             <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#374151', marginBottom: '0.4rem' }}>Department</label>
                             <div style={{ position: 'relative' }}>
                                 <div style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: '1rem', color: '#9CA3AF', display: 'flex' }}><Building size={20} /></div>
-                                <select name="department" value={formData.department} onChange={e => setFormData({ ...formData, department: e.target.value })} required style={{ ...inputStyle, appearance: 'none', color: formData.department ? '#111827' : '#9CA3AF' }} onFocus={onFocus} onBlur={onBlur}>
+                                <select
+                                    name="department"
+                                    value={formData.department}
+                                    onChange={e => handleDeptChange(e.target.value)}
+                                    required
+                                    style={{ ...inputStyle, appearance: 'none', color: formData.department ? '#111827' : '#9CA3AF' }}
+                                    onFocus={onFocus} onBlur={onBlur}
+                                >
                                     <option value="">Select Department</option>
-                                    {departments.map(d => <option key={d._id} value={d._id} style={{ color: '#111827' }}>{d.name}</option>)}
+                                    {STATIC_DEPARTMENTS.map(d => (
+                                        <option key={d} value={d}>{d}</option>
+                                    ))}
                                 </select>
                                 <div style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', right: '1rem', color: '#9CA3AF', pointerEvents: 'none' }}>
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6" /></svg>
@@ -141,12 +223,30 @@ const Register = () => {
                             </div>
                         </div>
 
+                        {/* Technology — opens based on department */}
                         <div>
-                            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#374151', marginBottom: '0.4rem' }}>Primary Technology</label>
+                            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#374151', marginBottom: '0.4rem' }}>
+                                Primary Technology
+                                {formData.department && (
+                                    <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem', fontWeight: 500, color: '#10B981' }}>
+                                        ({availableTechs.length} options)
+                                    </span>
+                                )}
+                            </label>
                             <div style={{ position: 'relative' }}>
-                                <select name="technology" value={formData.technology} onChange={e => setFormData({ ...formData, technology: e.target.value })} required style={{ ...inputStyle, appearance: 'none', color: formData.technology ? '#111827' : '#9CA3AF' }} onFocus={onFocus} onBlur={onBlur}>
-                                    <option value="">Select Technology</option>
-                                    {techOptions.map(tech => <option key={tech} value={tech}>{tech}</option>)}
+                                <select
+                                    name="technology"
+                                    value={formData.technology}
+                                    onChange={e => setFormData({ ...formData, technology: e.target.value })}
+                                    required
+                                    disabled={!formData.department}
+                                    style={{ ...inputStyle, appearance: 'none', color: formData.technology ? '#111827' : '#9CA3AF', opacity: !formData.department ? 0.5 : 1, cursor: !formData.department ? 'not-allowed' : 'pointer' }}
+                                    onFocus={onFocus} onBlur={onBlur}
+                                >
+                                    <option value="">{formData.department ? 'Select Technology' : 'First select a department'}</option>
+                                    {availableTechs.map(tech => (
+                                        <option key={tech} value={tech}>{tech}</option>
+                                    ))}
                                 </select>
                                 <div style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', right: '1rem', color: '#9CA3AF', pointerEvents: 'none' }}>
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6" /></svg>
@@ -168,18 +268,34 @@ const Register = () => {
 
             {showConfirm && createdUser && (
                 <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowConfirm(false)}>
-                    <div className="modal-box" style={{ maxWidth: '540px', padding: '1.25rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                            <h3 style={{ margin: 0 }}>Account Created</h3>
+                    <div className="modal-box" style={{ maxWidth: '540px', padding: '1.5rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>Account Created ✅</h3>
                             <button onClick={() => setShowConfirm(false)} className="btn-ghost">Close</button>
                         </div>
-                        <p style={{ margin: '0 0 1rem' }}>Welcome <strong>{createdUser.name}</strong> — your account has been created.</p>
-                        <div style={{ background: '#F8FAFC', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1rem' }}>
-                            <p style={{ margin: 0, fontSize: '0.9rem' }}>Your Employee ID:</p>
-                            <h2 style={{ margin: '0.35rem 0 0', fontFamily: 'monospace' }}>{createdUser.employeeId || '—'}</h2>
+                        <p style={{ margin: '0 0 1rem', fontSize: '0.9rem', color: '#374151' }}>Welcome <strong>{createdUser.name}</strong> — your account has been created successfully.</p>
+                        <div style={{ background: '#F8FAFC', padding: '1rem 1.25rem', borderRadius: '0.75rem', marginBottom: '1rem', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 500 }}>Employee ID</span>
+                                <span style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: '1rem', color: '#4F46E5', background: '#EEF2FF', padding: '0.2rem 0.75rem', borderRadius: '0.375rem' }}>{createdUser.employeeId || '—'}</span>
+                            </div>
+                            <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '0.6rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 500 }}>Department</span>
+                                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0F172A' }}>
+                                                    {formData.department || '—'}
+                                                </span>
+                            </div>
+                            <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '0.6rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 500 }}>Technology</span>
+                                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0F172A' }}>{formData.technology || '—'}</span>
+                            </div>
+                            <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '0.6rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 500 }}>Email</span>
+                                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#0F172A' }}>{createdUser.email}</span>
+                            </div>
                         </div>
                         <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-                            <button className="btn" onClick={() => { setShowConfirm(false); setIsLoading(false); navigate('/'); }}>Sign In</button>
+                            <button className="btn btn-outline" onClick={() => { setShowConfirm(false); setIsLoading(false); navigate('/'); }}>Sign In</button>
                             <button className="btn btn-primary" onClick={() => { setShowConfirm(false); setIsLoading(false); navigate('/employee'); }}>Go to Dashboard</button>
                         </div>
                     </div>
