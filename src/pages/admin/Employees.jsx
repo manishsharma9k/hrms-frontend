@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
-import { Users, Plus, Trash2, Edit2, Search, X, Mail, Lock, Building2, DollarSign, Eye, ArrowLeft } from 'lucide-react';
+import { Users, Plus, Trash2, Edit2, Search, X, Mail, Lock, Building2, DollarSign, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { employeesAPI, departmentsAPI } from '../../services/api';
 
 import PageLoader from '../../components/PageLoader';
@@ -19,6 +19,7 @@ const Employees = () => {
     const [saving, setSaving] = useState(false);
     const [deleting, setDeleting] = useState(null);
     const [error, setError] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
 
     const fetchData = async () => {
         try {
@@ -33,7 +34,7 @@ const Employees = () => {
 
     const openAdd = () => { setEditingId(null); setFormData({ name: '', email: '', password: '', department: '', salary: '' }); setError(''); setShowModal(true); };
     const openEdit = (emp) => { setEditingId(emp._id); setFormData({ name: emp.name, email: emp.email, password: '', department: emp.department?._id || '', salary: emp.salary || '', technology: emp.technology || '' }); setError(''); setShowModal(true); };
-    const closeModal = () => { setShowModal(false); setEditingId(null); setError(''); };
+    const closeModal = () => { setShowModal(false); setEditingId(null); setError(''); setShowPassword(false); };
 
     const handleSubmit = async (e) => {
         e.preventDefault(); setSaving(true); setError('');
@@ -157,7 +158,12 @@ const Employees = () => {
                                 </div>
                                 <div className="form-group">
                                     <label className="form-label">Password {editingId && <span style={{ fontWeight: 400, textTransform: 'none', color: '#94A3B8' }}>(leave blank to keep)</span>}</label>
-                                    <input className="form-input" type="password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} required={!editingId} minLength={6} maxLength={32} placeholder="••••••••" />
+                                    <div style={{ position: 'relative' }}>
+                                        <input className="form-input" type={showPassword ? 'text' : 'password'} value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} required={!editingId} minLength={6} maxLength={32} placeholder="••••••••" style={{ paddingRight: '2.5rem' }} />
+                                        <button type="button" onClick={() => setShowPassword(p => !p)} style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', right: '0.75rem', background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', display: 'flex', padding: 0 }}>
+                                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                        </button>
+                                    </div>
                                 </div>
                                 <div className="form-group">
                                     <label className="form-label">Department</label>
