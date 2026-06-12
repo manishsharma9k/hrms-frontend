@@ -32,8 +32,6 @@ import LeaveRequests from './pages/employee/LeaveRequests';
 import Attendance from './pages/employee/Attendance';
 import SalaryDetails from './pages/employee/SalaryDetails';
 
-import GoogleAuthSuccess from './pages/auth/GoogleAuthSuccess';
-
 function App() {
   return (
     <Router>
@@ -45,7 +43,6 @@ function App() {
         <Route path="/admin-register" element={<AdminRegister />} />
         <Route path="/forgotpassword" element={<ForgotPassword />} />
         <Route path="/resetpassword/:token" element={<ResetPassword />} />
-        <Route path="/auth/google/success" element={<GoogleAuthSuccess />} />
         <Route path="/auth/google/success" element={<GoogleAuthSuccess />} />
         <Route path="/candidate-apply" element={<CandidateApply />} />
 
