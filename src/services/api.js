@@ -7,7 +7,7 @@ export const registerLoaderCallbacks = (show, hide) => { _showLoader = show; _hi
 
 // ─── Axios Instance ───────────────────────────────────────────────────────────
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || import.meta.env.VITE_BASE_API_URL || 'http://localhost:5000/api',
+    baseURL: import.meta.env.VITE_API_URL || import.meta.env.VITE_BASE_API_URL || 'https://hrms-backend-femh.onrender.com/api',
     withCredentials: true,
     timeout: 15000,
 });
