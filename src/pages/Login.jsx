@@ -96,11 +96,6 @@ const Login = () => {
     const handleSubmit = (e) => {
         e.preventDefault();
         setLocalError('');
-        if (locStatus !== 'granted') {
-            setShowLocModal(true);
-            toast.error('Please allow location access to sign in.');
-            return;
-        }
         setShowConfirm(true);
     };
 
@@ -355,13 +350,13 @@ const Login = () => {
                             </div>
                         </div>
 
-                        <button type="submit" disabled={isLoading || locStatus !== 'granted'} style={{ width: '100%', padding: '0.95rem', marginTop: '0.5rem', background: locStatus === 'granted' ? 'linear-gradient(135deg,#4F46E5,#4338CA)' : '#CBD5E1', color: 'white', border: 'none', borderRadius: '0.75rem', fontSize: '1rem', fontWeight: 800, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', cursor: (isLoading || locStatus !== 'granted') ? 'not-allowed' : 'pointer', boxShadow: locStatus === 'granted' ? '0 16px 32px rgba(79,70,229,0.28)' : 'none' }}>
-                            {isLoading ? 'Signing in...' : locStatus === 'requesting' ? 'Getting location...' : 'Sign In'} <ArrowRight size={18} />
+                        <button type="submit" disabled={isLoading} style={{ width: '100%', padding: '0.95rem', marginTop: '0.5rem', background: 'linear-gradient(135deg,#4F46E5,#4338CA)', color: 'white', border: 'none', borderRadius: '0.75rem', fontSize: '1rem', fontWeight: 800, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', cursor: isLoading ? 'not-allowed' : 'pointer', boxShadow: '0 16px 32px rgba(79,70,229,0.28)' }}>
+                            {isLoading ? 'Signing in...' : 'Sign In'} <ArrowRight size={18} />
                         </button>
 
                         {locStatus !== 'granted' && locStatus !== 'requesting' && (
                             <button type="button" onClick={() => setShowLocModal(true)} style={{ width: '100%', padding: '0.8rem', marginTop: '0.5rem', background: '#EEF2FF', border: '1px solid #C7D2FE', borderRadius: '0.75rem', fontSize: '0.92rem', fontWeight: 800, color: '#4338CA', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                                <MapPin size={16} /> Allow Location to Sign In
+                                <MapPin size={16} /> Allow Location (Optional)
                             </button>
                         )}
                     </form>

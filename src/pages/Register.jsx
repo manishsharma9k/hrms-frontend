@@ -107,7 +107,6 @@ const Register = () => {
         setIsLoading(true);
         try {
             // MongoDB ObjectId ho toh directly bhejo, warna department name bhejo
-            const mongoose_id_regex = /^[a-f\d]{24}$/i;
             const deptValue = formData.department || null;
             const userRes = await register(formData.name, formData.email, formData.password, deptValue, formData.technology, photo);
             setCreatedUser(userRes);
